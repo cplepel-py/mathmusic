@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE score-partwise PUBLIC
+	"-//Recordare//DTD MusicXML 3.1 Partwise//EN"
+	"http://www.musicxml.org/dtds/partwise.dtd">
+{% macro step_oct(pitch) -%}
+				<pitch>
+					<step>{{"BCDEFGA"[pitch%7]}}</step>
+					<octave>{{5+((pitch-1)//7)}}</octave>
+				</pitch>
+{%- endmacro %}
+{% macro note_len(d) -%}
+				<duration>{{12*d}}</duration>
+				{% set nearest = {0: 0, 0.125: 0.125, 0.25: 0.25, 0.5: 0.5, 0.75: 0.5, 1: 1, 1.25: 1, 1.5: 1, 1.75: 1, 2: 2,
+					2.25: 2, 2.5: 2, 2.75: 2, 3: 2, 3.25: 2, 3.5: 2, 3.75: 2, 4: 4, (1/3): 0.5, (2/3): 1}[d] %}
+				<type>{{ {0.125: "32nd", 0.25: "16th", 0.5: "eighth", 1: "quarter", 2: "half", 4: "whole"}[nearest] }}</type>
+				{% if (d == (1/3) or d == (2/3)) %}
+				<time-modification>
+					<actual-notes>3</actual-notes>
+					<normal-notes>2</normal-notes>
+				</time-modification>
+				{% elif d - nearest >= 3*nearest/4 %}
+				<dot/>
+				<dot/>
+				{% elif d - nearest >= nearest/2 %}
+				<dot/>
+				{% endif %}
+{%- endmacro %}
+<score-partwise version="3.1">  
+	<movement-title>{{title}}</movement-title>
+	<identification>
+		<creator type="composer">{{composer}}</creator>
+		<creator type="composer">Mathmusic.py</creator>
+		<encoding>
+			<encoder>Mathmusic.py 1.0.0</encoder>
+			<software>Mathmusic.py 1.0.0</software>
+		</encoding>
+	</identification>
+	<part-list>
+	{% for instrument in instruments %}
+	<score-part id="P{{loop.index}}">
+		<part-name>{{instrument.name}}</part-name>
+		<part-abbreviation>{{instrument.abbr}}</part-abbreviation>
+		<midi-instrument id="P{{loop.index}}-I1">
+			<midi-channel>1</midi-channel>
+			<midi-program>{{instrument.midi}}</midi-program>
+			<volume>{{dynamics[loop.index0]}}</volume>
+			<pan>0</pan>
+		</midi-instrument>
+	</score-part>
+	{% endfor %}
+	</part-list>
+	{% for part in parts %}
+	<part id="P{{loop.index}}">
+		{% for measure in part %}
+		<measure number="{{loop.index}}">
+			{% if loop.index == 1 %}
+			<attributes>
+				<divisions>12</divisions>
+				<key>
+					<fifths>0</fifths>
+				</key>
+				<time>
+					<beats>{{chd_len}}</beats>
+					<beat-type>4</beat-type>
+				</time>
+				<clef>
+				{% if instruments[loop.index0].clef == "F" %}
+					<sign>F</sign>
+					<line>4</line>
+				{% else %}
+					<sign>G</sign>
+					<line>2</line>
+				{% endif %}
+				</clef>
+			</attributes>
+			{% endif %}
+			{% for note in measure %}
+			{% if note[0] == "R" %}
+			<note>
+				<rest/>
+				{{note_len(note[1])}}
+				<type>{{ {0.25: "sixteenth", 0.5: "eighth", 1: "quarter", 2: "half", 4: "whole"}[note[1]] }}</type>
+			</note>
+			{% elif note[0] == "N" %}
+			<note>
+				{{step_oct(note[2])}}
+				{{note_len(note[1])}}
+			</note>
+			{% else %}
+				{% for n in note[2] %}
+				<note>
+					{% if loop.index != 1 %}
+					<chord/>
+					{% endif %}
+					{{step_oct(n)}}
+					{{note_len(note[1])}}
+				</note>
+				{% endfor %}
+			{% endif %}
+			{% endfor %}
+		</measure>
+		{% endfor %}
+	</part>
+	{% endfor %}
+</score-partwise>
